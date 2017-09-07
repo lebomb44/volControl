@@ -1,24 +1,26 @@
 #include <Cmd.h>
 #include <IR.h>
 #include <SPI.h>
+#include <Mcp4261.h>
 
 /* *****************************
  *  Pin allocation
  * *****************************
  */
-#define GREEN_LIGHT_PIN 13
+#define RED_LIGHT_PIN 6
+#define RELAY_PIN 4
 
-#define NRF24_CE_pin   9
-#define NRF24_CSN_pin  10
-#define NRF24_MOSI_pin 11
-#define NRF24_MISO_pin 12
-#define NRF24_SCK_pin  13
+#define MCP4261_SLAVE_SELECT_PIN 3
 
 /* *****************************
  *  Global variables
  * *****************************
  */
 IR ir;
+uint16_t volumeLevel = 0;
+uint16_t balanceValue = 0;
+float rAB_ohms = 50000.00; // 50Kohms
+MCP4261 Mcp4261 = MCP4261( MCP4261_SLAVE_SELECT_PIN, rAB_ohms );
 
 /* *****************************
  *  Debug Macros
@@ -32,10 +34,14 @@ bool volControl_printIsEnabled = true;
  * *****************************
  */
 /* Light */
-void greenON (int arg_cnt, char **args) { digitalWrite(GREEN_LIGHT_PIN , HIGH); Serial.println("Green light ON"  );  }
-void greenOFF (int arg_cnt, char **args) { digitalWrite(GREEN_LIGHT_PIN , LOW); Serial.println("Green light OFF" ); }
-void volUp (int arg_cnt, char **args) { Serial.println("Volume UP"  );  }
-void volDown (int arg_cnt, char **args) { Serial.println("Volume DOWN" ); }
+void redON (int arg_cnt, char **args) { digitalWrite(RED_LIGHT_PIN , HIGH); Serial.println("Red light ON");  }
+void redOFF (int arg_cnt, char **args) { digitalWrite(RED_LIGHT_PIN , LOW); Serial.println("Red light OFF"); }
+void relayON (int arg_cnt, char **args) { digitalWrite(RELAY_PIN , HIGH); Serial.println("Relay ON");  }
+void relayOFF (int arg_cnt, char **args) { digitalWrite(RELAY_PIN , LOW); Serial.println("Relay OFF"); }
+void volUp (int arg_cnt, char **args) { if(Mcp4261.scale > volumeLevel) { volumeLevel++; Mcp4261.wiper0(volumeLevel); relayON(0, NULL); } Serial.print("Volume UP: "); Serial.println(volumeLevel); }
+void volDown (int arg_cnt, char **args) { if(0 < volumeLevel) { volumeLevel--; Mcp4261.wiper0(volumeLevel); if(0 == volumeLevel) { relayOFF(0, NULL); } else { relayON(0, NULL); } } Serial.print("Volume DOWN: "); Serial.println(volumeLevel); }
+void balLeft (int arg_cnt, char **args) { if(Mcp4261.scale > balanceValue) { balanceValue++; Mcp4261.wiper1(balanceValue); } Serial.print("Balance Left: "); Serial.println(balanceValue); }
+void balRight (int arg_cnt, char **args) { if(0 < balanceValue) { balanceValue--; Mcp4261.wiper1(balanceValue); } Serial.print("Balance Right: "); Serial.println(balanceValue); }
 void volControlEnablePrint(int arg_cnt, char **args) { volControl_printIsEnabled = true; Serial.println("volControl print enabled"); }
 void volControlDisablePrint(int arg_cnt, char **args) { volControl_printIsEnabled = false; Serial.println("volControl print disabled"); }
 
@@ -44,34 +50,48 @@ void setup() {
    *  Pin configuration
    * ****************************
    */
-  pinMode(GREEN_LIGHT_PIN, OUTPUT);
-  //digitalWrite(GREEN_LIGHT_PIN, HIGH);
+  pinMode(RED_LIGHT_PIN, OUTPUT);
+  digitalWrite(RED_LIGHT_PIN, LOW);
+  pinMode(RELAY_PIN, OUTPUT);
+  digitalWrite(RELAY_PIN, LOW);
+
+  redON(0, NULL);
 
   Serial.begin(115200);
   Serial.println("volControl Starting...");
 
+  SPI.begin();
+  SPI.beginTransaction(SPISettings(14000000, MSBFIRST, SPI_MODE0));
+  // First measure the the wiper resistance, called rW
+  Mcp4261.wiper0_pos(0); // rAW = rW_ohms
+  Mcp4261.wiper1_pos(0); // rAW = rW_ohms
+  delay(5000);
+  Mcp4261.scale = 100.0;
+  balanceValue = Mcp4261.scale/2;
+  Mcp4261.wiper1(balanceValue);
+
   cmdInit();
 
-  cmdAdd("greenON", "Green light ON", greenON);
-  cmdAdd("greenOFF", "Green light OFF", greenOFF);
+  cmdAdd("redON", "Red light ON", redON);
+  cmdAdd("redOFF", "Red light OFF", redOFF);
+  cmdAdd("relayON", "Relay light ON", relayON);
+  cmdAdd("relayOFF", "Relay light OFF", relayOFF);
   cmdAdd("volUp", "Volume UP", volUp);
   cmdAdd("volDown", "Volume DOWN", volDown);
+  cmdAdd("balLeft", "Balance Left", balLeft);
+  cmdAdd("balRight", "Balance Right", balRight);
   cmdAdd("enablePrint", "Enable print", volControlEnablePrint);
   cmdAdd("disablePrint", "Disable print", volControlDisablePrint);
   cmdAdd("help", "List commands", cmdList);
 
   Serial.println("volControl Init done");
 
-  delay(1000);
-  digitalWrite(GREEN_LIGHT_PIN, HIGH);
+  redOFF(0, NULL);
 }
 
 void loop() {
-  static uint16_t volumeLevel = 0;
-
   ir.run();
   if(true == ir.rxSamsungCodeIsReady()) {
-    digitalWrite(GREEN_LIGHT_PIN , LOW);
     VOLCONTROL_PRINT( Serial.print(ir.rxGetSamsungCode(), HEX);Serial.print(" : "); )
     VOLCONTROL_PRINT( Serial.print(ir.rxGetSamsungManufacturer(), HEX);Serial.print("-"); )
     VOLCONTROL_PRINT( Serial.print(ir.rxGetSamsungData(), HEX);Serial.println(); )
@@ -79,23 +99,26 @@ void loop() {
     ir.purge();
     /* Check the authorized codes */
     if(0xF1F0 == ir.rxGetSamsungManufacturer()) {
+      redON(0, NULL);
       if(0xD927 == ir.rxGetSamsungData()) {
-        if(1023 > volumeLevel) { volumeLevel++; }
-        VOLCONTROL_PRINT( Serial.print("Volume UP: "); Serial.println(volumeLevel); )
+        volUp(0, NULL);
       }
       else if(0x29D7 == ir.rxGetSamsungData()) {
-        if(0 < volumeLevel) { volumeLevel--; }
-        VOLCONTROL_PRINT( Serial.print("Volume DOWN: "); Serial.println(volumeLevel); )
+        volDown(0, NULL);
+      }
+      else if(0x2BD9 == ir.rxGetSamsungData()) {
+        relayON(0, NULL);
+      }
+      else if(0x2DD3 == ir.rxGetSamsungData()) {
+        relayOFF(0, NULL);
       }
       else { VOLCONTROL_PRINT( Serial.print("Samsung command unknown: "); Serial.println(ir.rxGetSamsungData(), HEX); ) }
+      redOFF(0, NULL);
     }
     else { VOLCONTROL_PRINT( Serial.print("Samsung manufacturer unknown: "); Serial.println(ir.rxGetSamsungManufacturer(), HEX); ) }
     ir.rxSamsungRelease();
-    digitalWrite(GREEN_LIGHT_PIN , HIGH);
   }
 
-  if(0 == volumeLevel) { }
-  else { }
   /* Poll for new command line */
   cmdPoll();
 }
