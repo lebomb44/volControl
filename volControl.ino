@@ -17,6 +17,8 @@
  * *****************************
  */
 IR ir;
+uint16_t relayToggleTimeout = 0;
+#define RELAYTOGGLE_TIMEOUT_START 1000
 uint16_t volumeLevel = 0;
 uint16_t balanceValue = 0;
 float rAB_ohms = 50000.00; // 50Kohms
@@ -33,15 +35,29 @@ bool volControl_printIsEnabled = true;
  *  Command lines functions
  * *****************************
  */
-/* Light */
 void redON (int arg_cnt, char **args) { digitalWrite(RED_LIGHT_PIN , HIGH); Serial.println("Red light ON");  }
 void redOFF (int arg_cnt, char **args) { digitalWrite(RED_LIGHT_PIN , LOW); Serial.println("Red light OFF"); }
-void relayON (int arg_cnt, char **args) { digitalWrite(RELAY_PIN , HIGH); Serial.println("Relay ON");  }
-void relayOFF (int arg_cnt, char **args) { digitalWrite(RELAY_PIN , LOW); Serial.println("Relay OFF"); }
-void volUp (int arg_cnt, char **args) { if(Mcp4261.scale > volumeLevel) { volumeLevel++; Mcp4261.wiper0(volumeLevel); relayON(0, NULL); } Serial.print("Volume UP: "); Serial.println(volumeLevel); }
-void volDown (int arg_cnt, char **args) { if(0 < volumeLevel) { volumeLevel--; Mcp4261.wiper0(volumeLevel); if(0 == volumeLevel) { relayOFF(0, NULL); } else { relayON(0, NULL); } } Serial.print("Volume DOWN: "); Serial.println(volumeLevel); }
-void balLeft (int arg_cnt, char **args) { if(Mcp4261.scale > balanceValue) { balanceValue++; Mcp4261.wiper1(balanceValue); } Serial.print("Balance Left: "); Serial.println(balanceValue); }
-void balRight (int arg_cnt, char **args) { if(0 < balanceValue) { balanceValue--; Mcp4261.wiper1(balanceValue); } Serial.print("Balance Right: "); Serial.println(balanceValue); }
+void relayTOGGLE (int arg_cnt, char **args) {
+  if(LOW == digitalRead(RELAY_PIN)) { if(0 == relayToggleTimeout) { digitalWrite(RELAY_PIN , HIGH); } Serial.println("Relay ON"); }
+  else { if(0 == relayToggleTimeout) { digitalWrite(RELAY_PIN , LOW); } Serial.println("Relay OFF"); }
+  relayToggleTimeout = RELAYTOGGLE_TIMEOUT_START;
+}
+void volUp (int arg_cnt, char **args) {
+  if(HIGH == digitalRead(RELAY_PIN)) { if(Mcp4261.scale > volumeLevel) { volumeLevel++; Mcp4261.wiper0(volumeLevel); } }
+  Serial.print("Volume UP: "); Serial.println(volumeLevel);
+}
+void volDown (int arg_cnt, char **args) {
+  if(HIGH == digitalRead(RELAY_PIN)) { if(0 < volumeLevel) { volumeLevel--; Mcp4261.wiper0(volumeLevel); } }
+  Serial.print("Volume DOWN: "); Serial.println(volumeLevel);
+}
+void balLeft (int arg_cnt, char **args) {
+  if(HIGH == digitalRead(RELAY_PIN)) { if(Mcp4261.scale > balanceValue) { balanceValue++; Mcp4261.wiper1(balanceValue); } }
+  Serial.print("Balance Left: "); Serial.println(balanceValue);
+}
+void balRight (int arg_cnt, char **args) {
+  if(HIGH == digitalRead(RELAY_PIN)) { if(0 < balanceValue) { balanceValue--; Mcp4261.wiper1(balanceValue); } }
+  Serial.print("Balance Right: "); Serial.println(balanceValue);
+}
 void volControlEnablePrint(int arg_cnt, char **args) { volControl_printIsEnabled = true; Serial.println("volControl print enabled"); }
 void volControlDisablePrint(int arg_cnt, char **args) { volControl_printIsEnabled = false; Serial.println("volControl print disabled"); }
 
@@ -67,6 +83,7 @@ void setup() {
   Mcp4261.wiper1_pos(0); // rAW = rW_ohms
   delay(5000);
   Mcp4261.scale = 100.0;
+  Mcp4261.wiper0(10.0);
   balanceValue = Mcp4261.scale/2;
   Mcp4261.wiper1(balanceValue);
 
@@ -74,8 +91,7 @@ void setup() {
 
   cmdAdd("redON", "Red light ON", redON);
   cmdAdd("redOFF", "Red light OFF", redOFF);
-  cmdAdd("relayON", "Relay light ON", relayON);
-  cmdAdd("relayOFF", "Relay light OFF", relayOFF);
+  cmdAdd("relayTOGGLE", "Toggle relay", relayTOGGLE);
   cmdAdd("volUp", "Volume UP", volUp);
   cmdAdd("volDown", "Volume DOWN", volDown);
   cmdAdd("balLeft", "Balance Left", balLeft);
@@ -107,10 +123,7 @@ void loop() {
         volDown(0, NULL);
       }
       else if(0x2BD9 == ir.rxGetSamsungData()) {
-        relayON(0, NULL);
-      }
-      else if(0x2DD3 == ir.rxGetSamsungData()) {
-        relayOFF(0, NULL);
+        relayTOGGLE(0, NULL);
       }
       else { VOLCONTROL_PRINT( Serial.print("Samsung command unknown: "); Serial.println(ir.rxGetSamsungData(), HEX); ) }
       redOFF(0, NULL);
@@ -121,5 +134,7 @@ void loop() {
 
   /* Poll for new command line */
   cmdPoll();
+  delay(1);
+  if(0 < relayToggleTimeout) { relayToggleTimeout--; }
 }
 
