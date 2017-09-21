@@ -1,3 +1,8 @@
+/* *****************************
+ *  VOLCONTROL 1.0.0
+ *  USING:
+ *   ARDULIBS 1.1.0
+ */
 #include <Cmd.h>
 #include <IR.h>
 #include <SPI.h>
