@@ -1,5 +1,5 @@
 /* *****************************
- *  VOLCONTROL 1.0.0
+ *  VOLCONTROL 1.1.0
  *  USING:
  *   ARDULIBS 1.1.0
  */
@@ -116,13 +116,13 @@ void loop() {
     /* Check the authorized codes */
     if(0xF1F0 == ir.rxGetSamsungManufacturer()) {
       redON(0, NULL);
-      if(0xD927 == ir.rxGetSamsungData()) { // A
+      if(0x0FF1 == ir.rxGetSamsungData()) { // A
         volUp(0, NULL);
       }
-      else if(0x29D7 == ir.rxGetSamsungData()) { // B
+      else if(0x17E9 == ir.rxGetSamsungData()) { // B
         volDown(0, NULL);
       }
-      else if(0x2BD5 == ir.rxGetSamsungData()) { // C
+      else if(0x1FE1 == ir.rxGetSamsungData()) { // C
         relayTOGGLE(0, NULL);
       }
       else { VOLCONTROL_PRINT( Serial.print("Samsung command unknown: "); Serial.println(ir.rxGetSamsungData(), HEX); ) }
