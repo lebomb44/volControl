@@ -59,34 +59,34 @@ void ping_cmdGet(int arg_cnt, char **args) { cnc_print_cmdGet_u32(pingName, mill
 void vol_cmdSet (int arg_cnt, char **args) {
   if(4 == arg_cnt)
   {
-    unsigned long volPos = strtoul(args[3], NULL, 10);
-    if(HIGH == digitalRead(RELAY_PIN)) { Mcp4261.setPosition(VOLUME_CHANNEL, constrainPos(volPos)); }
-    cnc_print_cmdGet_tbd(debugName); cnc_Serial_get()->print("Volume "); cnc_Serial_get()->println(Mcp4261.getPosition(VOLUME_CHANNEL)); cnc_Serial_get()->flush();
+    unsigned long volPer = strtoul(args[3], NULL, 10);
+    if(HIGH == digitalRead(RELAY_PIN)) { Mcp4261.setPosition(VOLUME_CHANNEL, percent2position(volPer)); }
+    cnc_print_cmdGet_tbd(debugName); cnc_Serial_get()->print("Volume "); cnc_Serial_get()->println(position2percent(Mcp4261.getPosition(VOLUME_CHANNEL))); cnc_Serial_get()->flush();
   }
 }
 void volUp_cmdSet (int arg_cnt, char **args) {
-  if(HIGH == digitalRead(RELAY_PIN)) { Mcp4261.setPosition(VOLUME_CHANNEL, constrainPos(((int)Mcp4261.getPosition(VOLUME_CHANNEL))-1)); }
-  cnc_print_cmdGet_tbd(debugName); cnc_Serial_get()->print("Volume UP "); cnc_Serial_get()->println(Mcp4261.getPosition(VOLUME_CHANNEL)); cnc_Serial_get()->flush();
+  if(HIGH == digitalRead(RELAY_PIN)) { Mcp4261.setPosition(VOLUME_CHANNEL, constrainPosition(((int)Mcp4261.getPosition(VOLUME_CHANNEL))-1)); }
+  cnc_print_cmdGet_tbd(debugName); cnc_Serial_get()->print("Volume UP "); cnc_Serial_get()->println(position2percent(Mcp4261.getPosition(VOLUME_CHANNEL))); cnc_Serial_get()->flush();
 }
 void volDown_cmdSet (int arg_cnt, char **args) {
-  if(HIGH == digitalRead(RELAY_PIN)) { Mcp4261.setPosition(VOLUME_CHANNEL, constrainPos(Mcp4261.getPosition(VOLUME_CHANNEL)+1)); }
-  cnc_print_cmdGet_tbd(debugName); cnc_Serial_get()->print("Volume DOWN "); cnc_Serial_get()->println(Mcp4261.getPosition(VOLUME_CHANNEL)); cnc_Serial_get()->flush();
+  if(HIGH == digitalRead(RELAY_PIN)) { Mcp4261.setPosition(VOLUME_CHANNEL, constrainPosition(Mcp4261.getPosition(VOLUME_CHANNEL)+1)); }
+  cnc_print_cmdGet_tbd(debugName); cnc_Serial_get()->print("Volume DOWN "); cnc_Serial_get()->println(position2percent(Mcp4261.getPosition(VOLUME_CHANNEL))); cnc_Serial_get()->flush();
 }
 void volMute_cmdSet (int arg_cnt, char **args) {
-  if(HIGH == digitalRead(RELAY_PIN)) { Mcp4261.setPosition(VOLUME_CHANNEL, constrainPos(256)); }
-  cnc_print_cmdGet_tbd(debugName); cnc_Serial_get()->print("Volume MUTE "); cnc_Serial_get()->println(Mcp4261.getPosition(VOLUME_CHANNEL)); cnc_Serial_get()->flush();
+  if(HIGH == digitalRead(RELAY_PIN)) { Mcp4261.setPosition(VOLUME_CHANNEL, constrainPosition(256)); }
+  cnc_print_cmdGet_tbd(debugName); cnc_Serial_get()->print("Volume MUTE "); cnc_Serial_get()->println(position2percent(Mcp4261.getPosition(VOLUME_CHANNEL))); cnc_Serial_get()->flush();
 }
 void volMax_cmdSet (int arg_cnt, char **args) {
-  if(HIGH == digitalRead(RELAY_PIN)) { Mcp4261.setPosition(VOLUME_CHANNEL, constrainPos(0)); }
-  cnc_print_cmdGet_tbd(debugName); cnc_Serial_get()->print("Volume MAX "); cnc_Serial_get()->println(Mcp4261.getPosition(VOLUME_CHANNEL)); cnc_Serial_get()->flush();
+  if(HIGH == digitalRead(RELAY_PIN)) { Mcp4261.setPosition(VOLUME_CHANNEL, constrainPosition(0)); }
+  cnc_print_cmdGet_tbd(debugName); cnc_Serial_get()->print("Volume MAX "); cnc_Serial_get()->println(position2percent(Mcp4261.getPosition(VOLUME_CHANNEL))); cnc_Serial_get()->flush();
 }
 void balLeft_cmdSet (int arg_cnt, char **args) {
-  if(HIGH == digitalRead(RELAY_PIN)) { Mcp4261.setPosition(BALANCE_CHANNEL, constrainPos(Mcp4261.getPosition(BALANCE_CHANNEL)+1)); }
-  cnc_print_cmdGet_tbd(debugName); cnc_Serial_get()->print("Balance Left "); cnc_Serial_get()->println(Mcp4261.getPosition(BALANCE_CHANNEL)); cnc_Serial_get()->flush();
+  if(HIGH == digitalRead(RELAY_PIN)) { Mcp4261.setPosition(BALANCE_CHANNEL, constrainPosition(Mcp4261.getPosition(BALANCE_CHANNEL)+1)); }
+  cnc_print_cmdGet_tbd(debugName); cnc_Serial_get()->print("Balance Left "); cnc_Serial_get()->println(position2percent(Mcp4261.getPosition(BALANCE_CHANNEL))); cnc_Serial_get()->flush();
 }
 void balRight_cmdSet (int arg_cnt, char **args) {
-  if(HIGH == digitalRead(RELAY_PIN)) { Mcp4261.setPosition(BALANCE_CHANNEL, constrainPos(((int)Mcp4261.getPosition(BALANCE_CHANNEL))-1)); }
-  cnc_print_cmdGet_tbd(debugName); cnc_Serial_get()->print("Balance Right "); cnc_Serial_get()->println(Mcp4261.getPosition(BALANCE_CHANNEL)); cnc_Serial_get()->flush();
+  if(HIGH == digitalRead(RELAY_PIN)) { Mcp4261.setPosition(BALANCE_CHANNEL, constrainPosition(((int)Mcp4261.getPosition(BALANCE_CHANNEL))-1)); }
+  cnc_print_cmdGet_tbd(debugName); cnc_Serial_get()->print("Balance Right "); cnc_Serial_get()->println(position2percent(Mcp4261.getPosition(BALANCE_CHANNEL))); cnc_Serial_get()->flush();
 }
 void on_cmdSet (int arg_cnt, char **args) {
   digitalWrite(RELAY_PIN , HIGH); cnc_print_cmdGet_tbd(debugName); cnc_Serial_get()->println("Relay ON"); cnc_Serial_get()->flush();
@@ -103,7 +103,10 @@ void relayTOGGLE(void) {
 void redON (void) { digitalWrite(RED_LIGHT_PIN , HIGH); cnc_print_cmdGet_tbd(debugName); cnc_Serial_get()->println("Red light ON"); cnc_Serial_get()->flush(); }
 void redOFF(void) { digitalWrite(RED_LIGHT_PIN , LOW); cnc_print_cmdGet_tbd(debugName); cnc_Serial_get()->println("Red light OFF"); cnc_Serial_get()->flush(); }
 
-unsigned int constrainPos(int pos) { return constrain(pos, 0, 256); }
+unsigned int constrainPosition(int pos) { return constrain(pos, 0, 256); }
+unsigned int position2percent(unsigned int position) { return map(constrainPosition(position), 0, 256, 100, 0); }
+unsigned int constrainPercent(int per) { return constrain(per, 0, 100); }
+unsigned int percent2position(unsigned int percent ) { return map(constrainPercent(percent), 0, 100, 256, 0); }
 
 void setup() {
   /* ****************************
@@ -151,7 +154,7 @@ void loop() {
   /* HK @ 1.0Hz */
   if((uint32_t)(currentTime - previousTime_1s) >= 1000) {
     cnc_print_hk_bool(powerName, digitalRead(RELAY_PIN)); cncPoll(); cncPoll();
-    cnc_print_hk_u32(volName, Mcp4261.getPosition(VOLUME_CHANNEL)); cncPoll();
+    cnc_print_hk_u32(volName, position2percent(Mcp4261.getPosition(VOLUME_CHANNEL))); cncPoll();
     cnc_print_hk_u32(balName, Mcp4261.getPosition(BALANCE_CHANNEL)); cncPoll();
     previousTime_1s = currentTime;
   }
