@@ -168,15 +168,15 @@ void loop() {
     //delay(1);
     ir.purge();
     /* Check the authorized codes */
-    if(0xF1F0 == ir.rxGetSamsungManufacturer()) {
+    if(0xF8F8 == ir.rxGetSamsungManufacturer()) {
       redON();
-      if(0x0FF1 == ir.rxGetSamsungData()) { // A
+      if(0x07F8 == ir.rxGetSamsungData()) { // A
         volUp_cmdSet(0, NULL);
       }
-      else if(0x17E9 == ir.rxGetSamsungData()) { // B
+      else if(0x0BF4 == ir.rxGetSamsungData()) { // B
         volDown_cmdSet(0, NULL);
       }
-      else if(0x1FE1 == ir.rxGetSamsungData()) { // C
+      else if(0x0FF0 == ir.rxGetSamsungData()) { // C
         relayTOGGLE();
       }
       else { cnc_print_cmdGet_tbd(debugName); cnc_Serial_get()->print("Samsung command unknown "); cnc_Serial_get()->println(ir.rxGetSamsungData(), HEX); cnc_Serial_get()->flush(); }
